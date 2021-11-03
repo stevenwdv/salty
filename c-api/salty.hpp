@@ -53,16 +53,16 @@ void salty_sign(const uint8_t (*seed)[salty_SECRETKEY_SEED_LENGTH],
                 uint8_t (*signature)[salty_SIGNATURE_SERIALIZED_LENGTH]);
 
 void sign_get_first_hash_init_data(const uint8_t (*seed)[salty_SECRETKEY_SEED_LENGTH],
-                                   uint8_t (*first_hash_init)[32]);
+                                   uint8_t (*first_hash_init)[salty_SECRETKEY_NONCE_LENGTH]);
 
 void salty_sign_get_second_hash_init_data(const uint8_t (*seed)[salty_SECRETKEY_SEED_LENGTH],
-                                          const uint8_t (*first_hash)[64],
+                                          const uint8_t (*first_hash)[salty_SHA512_LENGTH],
                                           uint8_t (*second_hash_init)[64],
-                                          uint8_t (*secret_r)[32]);
+                                          uint8_t (*secret_r)[salty_SCALAR_LENGTH]);
 
 void salty_sign_finalize(const uint8_t (*seed)[salty_SECRETKEY_SEED_LENGTH],
-                         const uint8_t (*second_hash)[64],
-                         const uint8_t (*r)[32],
+                         const uint8_t (*second_hash)[salty_SHA512_LENGTH],
+                         const uint8_t (*secret_r)[salty_SCALAR_LENGTH],
                          uint8_t (*signature)[salty_SIGNATURE_SERIALIZED_LENGTH]);
 
 /// Signs the data for a given context, based on the keypair generated

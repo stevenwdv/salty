@@ -10,6 +10,8 @@ use crate::{
         SECRETKEY_SEED_LENGTH,
         SECRETKEY_SCALAR_LENGTH,
         SECRETKEY_NONCE_LENGTH,
+        COMPRESSED_Y_LENGTH,
+        SCALAR_LENGTH,
 
         SHA512_LENGTH,
         PUBLICKEY_SERIALIZED_LENGTH,
@@ -69,8 +71,8 @@ pub struct Signature {
 // }
 
 pub struct SplitSignHash2 {
-    pub hash_data: [u8; 64],
-    pub secret_r: [u8; 32],
+    pub hash_data: [u8; 2 * COMPRESSED_Y_LENGTH],
+    pub secret_r: [u8; SCALAR_LENGTH],
 }
 
 impl Keypair {
@@ -100,7 +102,7 @@ impl Keypair {
         Signature { r: R, s }
     }
 
-    pub fn sign_get_first_hash_init_data(&self) -> &[u8; 32] {
+    pub fn sign_get_first_hash_init_data(&self) -> &[u8; SECRETKEY_NONCE_LENGTH] {
         &self.secret.nonce
     }
 
@@ -125,13 +127,13 @@ impl Keypair {
         }
     }
 
-    pub fn sign_prepare_second_hash(&self, first_hash: &Digest) -> (Sha512, [u8; 32]) {
+    pub fn sign_prepare_second_hash(&self, first_hash: &Digest) -> (Sha512, [u8; SECRETKEY_NONCE_LENGTH]) {
         let state = self.sign_get_second_hash_init_data(&first_hash);
         (Sha512::new().updated(&state.hash_data), state.secret_r)
     }
 
-    pub fn sign_finalize(&self, second_hash: &Digest, scalar: &[u8; 32]) -> Signature {
-        let r = Scalar(*scalar);
+    pub fn sign_finalize(&self, second_hash: &Digest, secret_r: &[u8; SCALAR_LENGTH]) -> Signature {
+        let r = Scalar(*secret_r);
 
         #[allow(non_snake_case)]
         let R: CompressedY = (&r * &EdwardsPoint::basepoint()).compressed();

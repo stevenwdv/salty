@@ -9,7 +9,11 @@ pub use salty::{
     Result,
     constants::{
         FIELD_ELEMENT_LENGTH,
+        SCALAR_LENGTH,
+        COMPRESSED_Y_LENGTH,
         SECRETKEY_SEED_LENGTH,
+        SECRETKEY_NONCE_LENGTH,
+        SECRETKEY_SCALAR_LENGTH,
         PUBLICKEY_SERIALIZED_LENGTH,
         SIGNATURE_SERIALIZED_LENGTH,
         SHA512_LENGTH,
@@ -52,7 +56,7 @@ pub unsafe extern "C" fn salty_sign(
 #[no_mangle]
 pub unsafe extern "C" fn sign_get_first_hash_init_data(
     seed: &[u8; SECRETKEY_SEED_LENGTH],
-    first_hash_init: &mut [u8; 32],
+    first_hash_init: &mut [u8; SECRETKEY_NONCE_LENGTH],
 ) {
     let keypair = Keypair::from(seed);
     first_hash_init.copy_from_slice(&keypair.sign_get_first_hash_init_data()[..]);
@@ -61,9 +65,9 @@ pub unsafe extern "C" fn sign_get_first_hash_init_data(
 #[no_mangle]
 pub unsafe extern "C" fn salty_sign_get_second_hash_init_data(
     seed: &[u8; SECRETKEY_SEED_LENGTH],
-    first_hash: &[u8; 64],
+    first_hash: &[u8; SHA512_LENGTH],
     second_hash_init: &mut [u8; 64],
-    secret_r: &mut [u8; 32],
+    secret_r: &mut [u8; SCALAR_LENGTH],
 ) {
     let keypair = Keypair::from(seed);
     let state = keypair.sign_get_second_hash_init_data(first_hash);
@@ -74,12 +78,12 @@ pub unsafe extern "C" fn salty_sign_get_second_hash_init_data(
 #[no_mangle]
 pub unsafe extern "C" fn salty_sign_finalize(
     seed: &[u8; SECRETKEY_SEED_LENGTH],
-    second_hash: &[u8; 64],
-    r: &[u8; 32],
+    second_hash: &[u8; SHA512_LENGTH],
+    secret_r: &[u8; SCALAR_LENGTH],
     signature: &mut [u8; SIGNATURE_SERIALIZED_LENGTH],
 ) {
     let keypair = Keypair::from(seed);
-    signature.copy_from_slice(&keypair.sign_finalize(second_hash, r).to_bytes())
+    signature.copy_from_slice(&keypair.sign_finalize(second_hash, secret_r).to_bytes())
 }
 
 #[no_mangle]
