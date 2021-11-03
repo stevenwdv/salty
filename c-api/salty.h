@@ -54,13 +54,6 @@ typedef enum {
   _Extensible,
 } salty_Error;
 
-typedef struct {
-  uint8_t digest[64];
-  uint8_t buffer[128];
-  uintptr_t unprocessed;
-  uintptr_t data_length;
-} salty_Sha512C;
-
 /**
  * Generates a public key from a secret seed. Use to verify signatures.
  */
@@ -75,13 +68,13 @@ void salty_sign(const uint8_t (*seed)[salty_SECRETKEY_SEED_LENGTH],
                 uintptr_t data_len,
                 uint8_t (*signature)[salty_SIGNATURE_SERIALIZED_LENGTH]);
 
-void salty_sign_prepare_first_hash(const uint8_t (*seed)[salty_SECRETKEY_SEED_LENGTH],
-                                   salty_Sha512C *first_hash_state);
+void sign_get_first_hash_init_data(const uint8_t (*seed)[salty_SECRETKEY_SEED_LENGTH],
+                                   uint8_t (*first_hash_init)[32]);
 
-void salty_sign_prepare_second_hash(const uint8_t (*seed)[salty_SECRETKEY_SEED_LENGTH],
-                                    const uint8_t (*first_hash)[64],
-                                    salty_Sha512C *second_hash_state,
-                                    uint8_t (*r)[32]);
+void salty_sign_get_second_hash_init_data(const uint8_t (*seed)[salty_SECRETKEY_SEED_LENGTH],
+                                          const uint8_t (*first_hash)[64],
+                                          uint8_t (*second_hash_init)[64],
+                                          uint8_t (*secret_r)[32]);
 
 void salty_sign_finalize(const uint8_t (*seed)[salty_SECRETKEY_SEED_LENGTH],
                          const uint8_t (*second_hash)[64],

@@ -2,7 +2,7 @@
 
 extern crate panic_halt;
 
-use core::convert::{TryFrom, TryInto};
+use core::convert::TryFrom;
 
 pub use salty::{
     Error,
@@ -21,7 +21,6 @@ use salty::{
     // SecretKey,
     PublicKey,
     Signature,
-    Sha512,
 };
 
 #[no_mangle]
@@ -50,45 +49,26 @@ pub unsafe extern "C" fn salty_sign(
     );
 }
 
-#[repr(C)]
-pub struct Sha512C {
-    digest: [u8; 64],
-    buffer: [u8; 128],
-    unprocessed: usize,
-    data_length: usize,
-}
-
-impl Sha512C {
-    pub fn from(state: Sha512) -> Sha512C {
-        Sha512C {
-            digest: state.peek_digest()[..].try_into().unwrap(),
-            buffer: state.get_buffer()[..].try_into().unwrap(),
-            unprocessed: state.get_unprocessed(),
-            data_length: state.get_data_length(),
-        }
-    }
-}
-
 #[no_mangle]
-pub unsafe extern "C" fn salty_sign_prepare_first_hash(
+pub unsafe extern "C" fn sign_get_first_hash_init_data(
     seed: &[u8; SECRETKEY_SEED_LENGTH],
-    first_hash_state: &mut Sha512C,
+    first_hash_init: &mut [u8; 32],
 ) {
     let keypair = Keypair::from(seed);
-    *first_hash_state = Sha512C::from(keypair.sign_prepare_first_hash());
+    first_hash_init.copy_from_slice(&keypair.sign_get_first_hash_init_data()[..]);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn salty_sign_prepare_second_hash(
+pub unsafe extern "C" fn salty_sign_get_second_hash_init_data(
     seed: &[u8; SECRETKEY_SEED_LENGTH],
     first_hash: &[u8; 64],
-    second_hash_state: &mut Sha512C,
-    r: &mut [u8; 32],
+    second_hash_init: &mut [u8; 64],
+    secret_r: &mut [u8; 32],
 ) {
     let keypair = Keypair::from(seed);
-    let (state, scalar) = keypair.sign_prepare_second_hash(first_hash);
-    *second_hash_state = Sha512C::from(state);
-    r.copy_from_slice(&scalar);
+    let state = keypair.sign_get_second_hash_init_data(first_hash);
+    second_hash_init.copy_from_slice(&state.hash_data);
+    secret_r.copy_from_slice(&state.secret_r);
 }
 
 #[no_mangle]

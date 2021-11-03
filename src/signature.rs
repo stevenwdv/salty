@@ -68,6 +68,11 @@ pub struct Signature {
 //     }
 // }
 
+pub struct SplitSignHash2 {
+    pub hash_data: [u8; 64],
+    pub secret_r: [u8; 32],
+}
+
 impl Keypair {
     pub fn sign(&self, message: &[u8]) -> Signature {
 
@@ -95,18 +100,34 @@ impl Keypair {
         Signature { r: R, s }
     }
 
-    pub fn sign_prepare_first_hash(&self) -> Sha512 {
-        Sha512::new().updated(&self.secret.nonce)
+    pub fn sign_get_first_hash_init_data(&self) -> &[u8; 32] {
+        &self.secret.nonce
     }
 
-    pub fn sign_prepare_second_hash(&self, first_hash: &Digest) -> (Sha512, [u8; 32]) {
+    pub fn sign_prepare_first_hash(&self) -> Sha512 {
+        Sha512::new().updated(self.sign_get_first_hash_init_data())
+    }
+
+    pub fn sign_get_second_hash_init_data(&self, first_hash: &Digest) -> SplitSignHash2 {
         let r: Scalar = Scalar::from_u512_le(&first_hash);
         #[allow(non_snake_case)]
         let R: CompressedY = (&r * &EdwardsPoint::basepoint()).compressed();
 
-        (Sha512::new()
-             .updated(&R.0)
-             .updated(&self.public.compressed.0), r.0)
+        let mut hash_data = [0u8; 64];
+        #[allow(non_snake_case)]
+        let (data_R, data_A) = hash_data.split_at_mut(R.0.len());
+        data_R.copy_from_slice(&R.0);
+        data_A.copy_from_slice(&self.public.compressed.0);
+
+        SplitSignHash2 {
+            hash_data,
+            secret_r: r.0,
+        }
+    }
+
+    pub fn sign_prepare_second_hash(&self, first_hash: &Digest) -> (Sha512, [u8; 32]) {
+        let state = self.sign_get_second_hash_init_data(&first_hash);
+        (Sha512::new().updated(&state.hash_data), state.secret_r)
     }
 
     pub fn sign_finalize(&self, second_hash: &Digest, scalar: &[u8; 32]) -> Signature {

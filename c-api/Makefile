@@ -9,7 +9,6 @@ build:
 build-noasm-release:
 	cargo build --release --target $(TARGET)
 	cp target/$(TARGET)/release/libsalty_c_api.a libsalty.a
-	cargo build --target $(TARGET)
 
 deep-clean: clean
 
