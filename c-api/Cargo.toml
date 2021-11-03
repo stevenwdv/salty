@@ -20,6 +20,7 @@ panic-halt = "0.2"
 slow-motion = ["salty/slow-motion"]
 
 [profile.release]
+panic = "abort"
 codegen-units = 1
 debug = true
 # using `lto = true` leads to

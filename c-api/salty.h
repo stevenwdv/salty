@@ -24,6 +24,7 @@
  * Extensible error type for all `salty` operations.
  *
  * This enum has a hidden member, to prevent exhaustively checking for errors.
+ * It also has a member `NoError` with value zero, for use in the C API.
  */
 typedef enum {
   /**
@@ -53,6 +54,13 @@ typedef enum {
   _Extensible,
 } salty_Error;
 
+typedef struct {
+  uint8_t digest[64];
+  uint8_t buffer[128];
+  uintptr_t unprocessed;
+  uintptr_t data_length;
+} salty_Sha512C;
+
 /**
  * Generates a public key from a secret seed. Use to verify signatures.
  */
@@ -67,8 +75,22 @@ void salty_sign(const uint8_t (*seed)[salty_SECRETKEY_SEED_LENGTH],
                 uintptr_t data_len,
                 uint8_t (*signature)[salty_SIGNATURE_SERIALIZED_LENGTH]);
 
+void salty_sign_prepare_first_hash(const uint8_t (*seed)[salty_SECRETKEY_SEED_LENGTH],
+                                   salty_Sha512C *first_hash_state);
+
+void salty_sign_prepare_second_hash(const uint8_t (*seed)[salty_SECRETKEY_SEED_LENGTH],
+                                    const uint8_t (*first_hash)[64],
+                                    salty_Sha512C *second_hash_state,
+                                    uint8_t (*r)[32]);
+
+void salty_sign_finalize(const uint8_t (*seed)[salty_SECRETKEY_SEED_LENGTH],
+                         const uint8_t (*second_hash)[64],
+                         const uint8_t (*r)[32],
+                         uint8_t (*signature)[salty_SIGNATURE_SERIALIZED_LENGTH]);
+
 /**
- * Signs the data for a context, based on the keypair generated from the secret seed.
+ * Signs the data for a given context, based on the keypair generated
+ * from the secret seed.
  */
 salty_Error salty_sign_with_context(const uint8_t (*seed)[salty_SECRETKEY_SEED_LENGTH],
                                     const uint8_t *data_ptr,
@@ -96,14 +118,14 @@ salty_Error salty_verify(const uint8_t (*public_key)[salty_PUBLICKEY_SERIALIZED_
                          const uint8_t (*signature)[salty_SIGNATURE_SERIALIZED_LENGTH]);
 
 /**
- * Verify a presumed signature on the given data for a context.
+ * Verify a presumed signature on the given data.
  */
 salty_Error salty_verify_with_context(const uint8_t (*public_key)[salty_PUBLICKEY_SERIALIZED_LENGTH],
                                       const uint8_t *data_ptr,
                                       uintptr_t data_len,
+                                      const uint8_t (*signature)[salty_SIGNATURE_SERIALIZED_LENGTH],
                                       const uint8_t *context_ptr,
-                                      uintptr_t context_len,
-                                      const uint8_t (*signature)[salty_SIGNATURE_SERIALIZED_LENGTH]);
+                                      uintptr_t context_len);
 
 /**
  * Verify a presumed signature on the given data.

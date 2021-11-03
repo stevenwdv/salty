@@ -23,6 +23,7 @@ static const uintptr_t salty_SIGNATURE_SERIALIZED_LENGTH = 64;
 /// Extensible error type for all `salty` operations.
 ///
 /// This enum has a hidden member, to prevent exhaustively checking for errors.
+/// It also has a member `NoError` with value zero, for use in the C API.
 enum class salty_Error {
   /// Never occurs, simplifies C bindings
   NoError = 0,
@@ -34,9 +35,16 @@ enum class salty_Error {
   SignatureInvalid,
   /// Context for prehashed signatures too long
   ContextTooLong,
-  /// Point is on the other twist of curve
+  /// Point is on other twist of curve
   WrongTwist,
   _Extensible,
+};
+
+struct salty_Sha512C {
+  uint8_t digest[64];
+  uint8_t buffer[128];
+  uintptr_t unprocessed;
+  uintptr_t data_length;
 };
 
 extern "C" {
@@ -50,6 +58,28 @@ void salty_sign(const uint8_t (*seed)[salty_SECRETKEY_SEED_LENGTH],
                 const uint8_t *data_ptr,
                 uintptr_t data_len,
                 uint8_t (*signature)[salty_SIGNATURE_SERIALIZED_LENGTH]);
+
+void salty_sign_prepare_first_hash(const uint8_t (*seed)[salty_SECRETKEY_SEED_LENGTH],
+                                   salty_Sha512C *first_hash_state);
+
+void salty_sign_prepare_second_hash(const uint8_t (*seed)[salty_SECRETKEY_SEED_LENGTH],
+                                    const uint8_t (*first_hash)[64],
+                                    salty_Sha512C *second_hash_state,
+                                    uint8_t (*r)[32]);
+
+void salty_sign_finalize(const uint8_t (*seed)[salty_SECRETKEY_SEED_LENGTH],
+                         const uint8_t (*second_hash)[64],
+                         const uint8_t (*r)[32],
+                         uint8_t (*signature)[salty_SIGNATURE_SERIALIZED_LENGTH]);
+
+/// Signs the data for a given context, based on the keypair generated
+/// from the secret seed.
+salty_Error salty_sign_with_context(const uint8_t (*seed)[salty_SECRETKEY_SEED_LENGTH],
+                                    const uint8_t *data_ptr,
+                                    uintptr_t data_len,
+                                    const uint8_t *context_ptr,
+                                    uintptr_t context_len,
+                                    uint8_t (*signature)[salty_SIGNATURE_SERIALIZED_LENGTH]);
 
 /// Signs the prehashed data, based on the keypair generated from the secret seed.
 /// An optional context can also be passed (this is recommended).
@@ -66,11 +96,20 @@ salty_Error salty_verify(const uint8_t (*public_key)[salty_PUBLICKEY_SERIALIZED_
                          const uint8_t (*signature)[salty_SIGNATURE_SERIALIZED_LENGTH]);
 
 /// Verify a presumed signature on the given data.
+salty_Error salty_verify_with_context(const uint8_t (*public_key)[salty_PUBLICKEY_SERIALIZED_LENGTH],
+                                      const uint8_t *data_ptr,
+                                      uintptr_t data_len,
+                                      const uint8_t (*signature)[salty_SIGNATURE_SERIALIZED_LENGTH],
+                                      const uint8_t *context_ptr,
+                                      uintptr_t context_len);
+
+/// Verify a presumed signature on the given data.
 salty_Error salty_verify_prehashed(const uint8_t (*public_key)[salty_PUBLICKEY_SERIALIZED_LENGTH],
                                    const uint8_t (*prehashed_data)[salty_SHA512_LENGTH],
                                    const uint8_t (*signature)[salty_SIGNATURE_SERIALIZED_LENGTH],
                                    const uint8_t *context_ptr,
                                    uintptr_t context_len);
+
 /// Perform X25519 key agreement.
 void salty_agree(const uint8_t (*scalar)[salty_SECRETKEY_SEED_LENGTH],
                  const uint8_t (*input_u)[salty_FIELD_ELEMENT_LENGTH],

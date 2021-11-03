@@ -19,7 +19,10 @@ use crate::{
         EdwardsPoint,
         CompressedY,
     },
-    hash::Sha512,
+    hash::{
+        Sha512,
+        Digest,
+    },
     scalar::Scalar,
 };
 
@@ -85,6 +88,32 @@ impl Keypair {
             .updated(&self.public.compressed.0)
             .updated(message)
             .finalize();
+
+        let h: Scalar = Scalar::from_u512_le(&second_hash);
+        let s = &r + &(&h * &self.secret.scalar);
+
+        Signature { r: R, s }
+    }
+
+    pub fn sign_prepare_first_hash(&self) -> Sha512 {
+        Sha512::new().updated(&self.secret.nonce)
+    }
+
+    pub fn sign_prepare_second_hash(&self, first_hash: &Digest) -> (Sha512, [u8; 32]) {
+        let r: Scalar = Scalar::from_u512_le(&first_hash);
+        #[allow(non_snake_case)]
+        let R: CompressedY = (&r * &EdwardsPoint::basepoint()).compressed();
+
+        (Sha512::new()
+             .updated(&R.0)
+             .updated(&self.public.compressed.0), r.0)
+    }
+
+    pub fn sign_finalize(&self, second_hash: &Digest, scalar: &[u8; 32]) -> Signature {
+        let r = Scalar(*scalar);
+
+        #[allow(non_snake_case)]
+        let R: CompressedY = (&r * &EdwardsPoint::basepoint()).compressed();
 
         let h: Scalar = Scalar::from_u512_le(&second_hash);
         let s = &r + &(&h * &self.secret.scalar);

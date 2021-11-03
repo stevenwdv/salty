@@ -6,6 +6,11 @@ build:
 	cargo build --target $(TARGET)
 	cp target/$(TARGET)/debug/libsalty_c_api.a libsalty-debug.a
 
+build-noasm-release:
+	cargo build --release --target $(TARGET)
+	cp target/$(TARGET)/release/libsalty_c_api.a libsalty.a
+	cargo build --target $(TARGET)
+
 deep-clean: clean
 
 clean:

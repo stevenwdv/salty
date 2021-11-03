@@ -296,4 +296,9 @@ impl Sha512 {
 
         self.digest
     }
+
+    pub fn peek_digest(&self) -> &Digest {&self.digest}
+    pub fn get_buffer(&self) -> &[u8; 128] {&self.buffer}
+    pub fn get_unprocessed(&self) -> usize {self.unprocessed}
+    pub fn get_data_length(&self) -> usize {self.data_length}
 }
