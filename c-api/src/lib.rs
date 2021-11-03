@@ -63,7 +63,7 @@ pub unsafe extern "C" fn sign_get_first_hash_init_data(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn salty_sign_get_second_hash_init_data(
+pub unsafe extern "C" fn sign_get_second_hash_init_data(
     seed: &[u8; SECRETKEY_SEED_LENGTH],
     first_hash: &[u8; SHA512_LENGTH],
     second_hash_init: &mut [u8; 64],
